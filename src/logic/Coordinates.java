@@ -14,6 +14,8 @@ public class Coordinates implements Serializable {
     private final Double X_MAXVALUE = 736d;
     private final double Y_MINVALUE = -119;
 
+    public Coordinates(){}
+
     /**
      * Constructor which throws exception, if we have out of bounds.
      * @param x - X coordinate.

@@ -24,6 +24,6 @@ public class CommandClear extends Command {
 
     @Override
     public String execOnServer(Server server, Object args, User user) {
-        return server.getManager().clear();
+        return server.getManager().clear(server, user);
     }
 }

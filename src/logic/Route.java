@@ -4,6 +4,7 @@ import commands.OutOfBoundsException;
 
 import java.io.Serializable;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Scanner;
 
@@ -20,11 +21,18 @@ public class Route implements Comparable<Route>, Serializable {
     private Location from; //Поле не может быть null
     private Location to; //Поле может быть null
     private float distance; //Значение поля должно быть больше 1
+    private String owner;
 
     /**
      * Default constructor for setters.
      */
-    public Route() {}
+    public Route() {
+        to = new Location();
+        from = new Location();
+        coordinates = new Coordinates();
+        creationDate = java.time.ZonedDateTime.now();
+    }
+
     Route(String name, Coordinates coordinates, Location from, Location to, float distance)
             throws NullPointerException, OutOfBoundsException {
         if (distance < 1) throw new OutOfBoundsException();
@@ -40,115 +48,79 @@ public class Route implements Comparable<Route>, Serializable {
         this.distance = distance;
     }
 
-    /**
-     * This method sets name of instance.
-     * @param name - new name of instance.
-     */
     public void setName(String name) {
         if (name == null || name.trim().equals("")) throw new NullPointerException("Name cant be null");
         this.name = name;
     }
 
-    /**
-     * This method sets coordinates of instance.
-     * @param coordinates - field with type Coordinates.
-     */
-    public void setCoordinates(Coordinates coordinates) {this.coordinates = coordinates;}
-
-    /**
-     * This method sets Location From field of instance.
-     * @param location - field with type Location.
-     */
-    public void setFrom(Location location) {
-        this.from = location;
+    public void setCoordinates(double x, double y) {
+        try {
+            coordinates.setX(x);
+            coordinates.setY(y);
+        } catch (OutOfBoundsException e) {
+            System.err.println(e.getMessage());
+        }
     }
 
-    /**
-     * This method sets Location To field of instance.
-     * @param location - field with type Location.
-     */
-    public void setTo(Location location) {
-        this.to = location;
+    public void setFrom(float x, int y, int z) {
+        from.setX(x);
+        from.setY(y);
+        from.setZ(z);
     }
 
-    /**
-     * This method sets distance field in instance.
-     * @param distance - float field of instance.
-     * @throws OutOfBoundsException - throws exception, if distance out of min_value = 1.
-     */
+    public void setTo(float x, int y, int z) {
+        to.setX(x);
+        to.setY(y);
+        to.setZ(z);
+    }
+
+    public void setCoordinates(Coordinates coordinates) {
+        this.coordinates = coordinates;
+    }
+
+    public void setFrom(Location from) {
+        this.from = from;
+    }
+
+    public void setTo(Location to) {
+        this.to = to;
+    }
+
     public void setDistance(float distance) throws OutOfBoundsException {
         if (distance < 1) throw new OutOfBoundsException();
         this.distance = distance;
     }
 
-    /**
-     * This method sets unique id for instance.
-     */
-    public void setId() {
-        this.id = lastIdAdded++;
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
 
-    /**
-     * This method generates creation date of instance.
-     */
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public void setCreationDate() {this.creationDate = java.time.ZonedDateTime.now();}
     public void setCreationDate(boolean bool) {this.creationDate = null;}
     public void setCreationDateForParse (java.time.ZonedDateTime time) {
         this.creationDate = time;
     }
 
-    /**
-     * This method resets id for instance.
-     */
     public static void resetId() {lastIdAdded = 1;}
 
-    /**
-     * This method returns id of instance.
-     * @return - returns id.
-     */
     public int getId() {return this.id;}
 
-    /**
-     * This method returns name of instance.
-     * @return - returns name.
-     */
     public String getName() {return this.name;}
 
-    /**
-     * This method returns coordination fields of instance.
-     * @return - returns coordinates.
-     */
     public Coordinates getCoordinates() {return coordinates;}
 
-    /**
-     * This method returns Location From of instance.
-     * @return - returns location from.
-     */
     public Location getFrom() {return from;}
 
-    /**
-     * This method returns Location To of instance.
-     * @return - return location to.
-     */
     public Location getTo() {return to;}
 
-    /**
-     * This method returns distance field of instance.
-     * @return - returns distance.
-     */
     public float getDistance() {return distance;}
 
-    /**
-     * This method returns creation date of instance.
-     * @return - returns date.
-     */
     public java.time.ZonedDateTime getCreationDate() {return creationDate;}
 
-    /**
-     * Overridden method compareTo to make ascending sort by distance as default.
-     * @param route - instance of class.
-     * @return - returns comparision of distance fields.
-     */
     @Override
     public int compareTo(Route route) {
         if (distance > route.getDistance()) return 1;
@@ -156,10 +128,6 @@ public class Route implements Comparable<Route>, Serializable {
         else return  -1;
     }
 
-    /**
-     * This method returns string with fields of instance.
-     * @return - returns string.
-     */
     @Override
     public String toString() {
         if (to == null) {
@@ -199,6 +167,23 @@ public class Route implements Comparable<Route>, Serializable {
         return null;
     }
 
+    public static Route generateFromSQL(ResultSet res) {
+        Route route = new Route();
+
+        try {
+            route.setId(res.getInt(1));
+            route.setName(res.getString(2));
+            route.setCoordinates(res.getDouble(3), res.getDouble(4));
+            route.setFrom(res.getFloat(5), res.getInt(6), res.getInt(7));
+            route.setTo(res.getFloat(8), res.getInt(9), res.getInt(10));
+            route.setDistance(res.getFloat(11));
+            route.setOwner(res.getString(12));
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
+        return route;
+    }
+
     public void add(PreparedStatement st, User user) throws SQLException {
         st.setString(1, getName());
         st.setDouble(2, coordinates.getX());
@@ -211,6 +196,23 @@ public class Route implements Comparable<Route>, Serializable {
         st.setInt(9, to.getZ());
         st.setFloat(10, getDistance());
         st.setString(11, user.getUsername());
+
+        st.executeUpdate();
+    }
+
+    public void update_id(PreparedStatement st, User user, int id) throws SQLException {
+        st.setString(1, getName());
+        st.setDouble(2, coordinates.getX());
+        st.setDouble(3, coordinates.getY());
+        st.setFloat(4, from.getX());
+        st.setInt(5, from.getY());
+        st.setInt(6, from.getZ());
+        st.setFloat(7, to.getX());
+        st.setInt(8, to.getY());
+        st.setInt(9, to.getZ());
+        st.setFloat(10, getDistance());
+        st.setInt(11, id);
+        st.setString(12, user.getUsername());
 
         st.executeUpdate();
     }

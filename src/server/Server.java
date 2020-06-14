@@ -28,7 +28,10 @@ public class Server {
     private PreparedStatement login;
     private PreparedStatement add_route;
     private PreparedStatement rm_route;
-
+    private PreparedStatement get_id;
+    private PreparedStatement clear_user;
+    private PreparedStatement update_id;
+    private PreparedStatement creation_date;
 
     public Server (int port) {
         this.port = port;
@@ -47,6 +50,7 @@ public class Server {
             manager = new CollectionManager();
 
             initStatements();       //ANOTHER PLACE
+            load();                 //ANOTHER PLACE
             registerCommands(invoker);
             reader = new BufferedReader(new InputStreamReader(System.in));
 
@@ -71,8 +75,6 @@ public class Server {
             System.out.println("Server closed.");
         }
     }
-
-
 
     private void acceptConnection() throws IOException {
         clientSocket = server.accept();
@@ -122,7 +124,7 @@ public class Server {
         Packet packet = new Packet(message);
         out.writeObject(packet);
         out.flush();
-        Thread.sleep(50);
+        Thread.sleep(70);
     }
 
     private static void closeConnection() {
@@ -156,6 +158,12 @@ public class Server {
                 "locationfromx, locationfromy, locationfromz, locationtox, locationtoy, locationtoz, distance, owner) " +
                 "VALUES (DEFAULT, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         rm_route = database.prepareStatement("DELETE FROM collection WHERE id = ?");
+        get_id = database.prepareStatement("SELECT currval('collection_id_seq')");
+        clear_user = database.prepareStatement("DELETE FROM collection WHERE owner = ?");
+        update_id = database.prepareStatement("UPDATE collection SET name = ?, coordinatex = ?, coordinatey = ?, " +
+                "locationfromx = ?, locationfromy = ?, locationfromz = ?, locationtox = ?, locationtoy = ?, " +
+                "locationtoz = ?, distance = ? WHERE id = ? AND owner = ?");
+        creation_date = database.prepareStatement("SELECT create_date FROM sys.tables WHERE name='collection'");
     }
 
     private void registerCommands(Invoker invoker) {
@@ -167,6 +175,10 @@ public class Server {
         add_user.setString(1, user.getUsername());
         add_user.setString(2, user.getPassword());
         add_user.executeUpdate();
+    }
+
+    public void updateId(int id, Route object, User user) throws SQLException {
+        object.update_id(update_id, user, id);
     }
 
     public void save(Route object, User user) throws SQLException {
@@ -185,6 +197,22 @@ public class Server {
         return (res.next());
     }
 
+    public int getId() throws SQLException {
+        ResultSet res = get_id.executeQuery();
+        if (res.next()) return res.getInt(1);
+        else return -1;
+    }
+
+    public void clearUserCollection(String owner) throws SQLException {
+        clear_user.setString(1,owner);
+        clear_user.executeUpdate();
+    }
+
+    private void load() throws SQLException {
+        ResultSet res = database.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
+                .executeQuery("SELECT * FROM collection");
+        manager.load(res);
+    }
 
     public static String parseIOException(IOException e) {
         String s = e.getMessage();
@@ -199,4 +227,5 @@ public class Server {
     public CollectionManager getManager() {
         return manager;
     }
+    public Connection getDatabase() {return database;}
 }

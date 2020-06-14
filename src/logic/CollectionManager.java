@@ -4,12 +4,15 @@ import server.Server;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * This class realizing methods for commands.
@@ -21,6 +24,12 @@ public class CollectionManager implements Serializable {
     public CollectionManager() {
         date = java.time.ZonedDateTime.now();
         route = new ArrayList<>();
+    }
+
+    public void load(ResultSet res) throws SQLException {
+        while (res.next()) {
+            route.add(Route.generateFromSQL(res));
+        }
     }
 
     /**
@@ -73,7 +82,13 @@ public class CollectionManager implements Serializable {
      * This method shows a elements in collection.
      */
     public String show() {
-        return "";
+        if (route.isEmpty()) return ("Collection is empty.");
+        else {
+            String str = route.stream()
+                    .map(Route::toString)
+                    .collect(Collectors.joining(("\n")));
+            return str;
+        }
     }
 
     /**
@@ -83,6 +98,8 @@ public class CollectionManager implements Serializable {
     public String add(Server server, Route object, User user) {
         try {
             server.save(object, user);
+            object.setId(server.getId());
+            route.add(object);
             return "Element was added";
         } catch (SQLException e) {
             System.out.println(e.getMessage());
@@ -94,21 +111,25 @@ public class CollectionManager implements Serializable {
      * This method update's an element in collection by id.
      * @param id - id of element which we want to update.
      */
-    public String update_id(Integer id, Route newElement) {
-            try {
-                Route oldElement = route.get(getIndexById(id));
-                if (newElement != null) {
-                    oldElement.setName(newElement.getName());
-                    oldElement.setCoordinates(newElement.getCoordinates());
-                    oldElement.setFrom(newElement.getFrom());
-                    oldElement.setTo(newElement.getTo());
-                    oldElement.setDistance(newElement.getDistance());
-                    return ("Element with " + id + " was updated!");
-                }
-            } catch (Exception e) {
-                return ("No element with such id!");
+    public String update_id(Integer id, Route newElement, Server server, User user) {
+        try {
+            Route oldElement = route.get(getIndexById(id));
+            if (newElement != null) {
+                oldElement.setName(newElement.getName());
+                oldElement.setCoordinates(newElement.getCoordinates());
+                oldElement.setFrom(newElement.getFrom());
+                oldElement.setTo(newElement.getTo());
+                oldElement.setDistance(newElement.getDistance());
+
+                server.updateId(id, newElement, user);
+
+
+                return ("Element with " + id + " was updated!");
             }
-            return null;
+        } catch (Exception e) {
+            return ("No element with such id!");
+        }
+        return null;
         }
 
     /**
@@ -129,10 +150,15 @@ public class CollectionManager implements Serializable {
     /**
      * This method clear's collection (deleting all elements).
      */
-    public String clear() {
-        setInitDate(java.time.ZonedDateTime.now());
-        route.clear();
-        return ("Collection was cleared!");
+    public String clear(Server server, User user) {
+        try {
+            server.clearUserCollection(user.getUsername());
+            removeByOwner(user.getUsername());
+            return "Your collection was cleared.";
+        } catch (SQLException e) {
+            System.err.println(e.getMessage());
+            return "Your collection wasn't cleared.";
+        }
     }
 
 
@@ -153,54 +179,40 @@ public class CollectionManager implements Serializable {
     /**
      * This method will add new element, if distance of new element is maximal in collection.
      */
-    public String add_if_max(Route newRoute)  {
-        float maxDistance = 0;
+    public String add_if_max(Server server, Route object, User user) {
         try {
-            maxDistance = route.stream()
-                    .max(Comparator.comparing(Route::getDistance))
-                    .get().getDistance();
-        } catch (NoSuchElementException e) {
-            System.out.print("");
+            if(route.size() > 0 && route.stream().max(Comparator.naturalOrder()).get().compareTo(object) > 0) {
+                return "That element isn't maximal in collection.";
+            } else {
+                server.save(object, user);
+                object.setId(server.getId());
+                route.add(object);
+                return "Element has been added successfully.";
+            }
+        } catch (SQLException e) {
+            System.err.println(e.getMessage());
         }
-
-
-        if((newRoute != null) && (newRoute.getDistance() > maxDistance)) {
-            route.add(newRoute);
-            route.get(route.size() - 1).setId();
-
-            return ("New element was added");
-        }
-        else if (newRoute != null) return ("This distance not maximal in collection");
-        return null;
+        return "Element wasn't added";
     }
 
-    /**
-     * This method will add new element, if distance of new element is minimal in collection.
-     */
-    public String add_if_min(Route newRoute) {
-        float minDistance = 999999999;
+
+    public String add_if_min(Server server, Route object, User user) {
         try {
-            route.stream()
-                    .min(Comparator.comparing(Route::getDistance))
-                    .get().getDistance();
-        } catch (NoSuchElementException e) {
-            System.out.print("");
+            if(route.size() > 0 && route.stream().min(Comparator.naturalOrder()).get().compareTo(object) > 0) {
+                return "That element isn't minimal in collection.";
+            } else {
+                server.save(object, user);
+                object.setId(server.getId());
+                route.add(object);
+                return "Element has been added successfully.";
+            }
+        } catch (SQLException e) {
+            System.err.println(e.getMessage());
         }
-
-        if ((newRoute != null) && (newRoute.getDistance() < minDistance)) {
-            route.add(newRoute);
-            route.get(route.size() - 1).setId();
-
-            return ("New element was added");
-        }
-        else if (newRoute != null) return ("This distance not minimal in collection");
-        return null;
+        return "Element wasn't added";
     }
 
-    /**
-     * This method returns number of matches with distance.
-     * @param distance - argument from console.
-     */
+
     public String count_by_distance(Float distance) {
         try {
             return ("Number of coincidences: " + route.stream()
@@ -213,9 +225,7 @@ public class CollectionManager implements Serializable {
         }
     }
 
-    /**
-     * This method prints unique values of distances from collection.
-     */
+
     public String print_unique_distance() {
         HashSet<Float> floatHashSet = route.stream()
                 .sorted(Route::compareTo)
@@ -256,6 +266,12 @@ public class CollectionManager implements Serializable {
                 return i;
             }
         } throw new Exception("No such id");
+    }
+
+    private void removeByOwner(String owner) {
+        route = route.stream()
+                .filter(x -> x.getName().equals(owner))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private void setInitDate(java.time.ZonedDateTime date) {

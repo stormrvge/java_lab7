@@ -1,0 +1,5 @@
+# Project exclude paths
+/out/
+postgresql-42.2.14.jar
+.idea
+lab7.iml

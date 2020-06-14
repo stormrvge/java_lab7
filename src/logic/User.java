@@ -3,9 +3,9 @@ package logic;
 import java.io.Serializable;
 
 public class User implements Serializable {
-    String username;
-    String password;
-    boolean login_successfully;
+    private String username;
+    private String password;
+    private boolean login_successfully;
 
     public User(String username, String password) {
         this.username = username;

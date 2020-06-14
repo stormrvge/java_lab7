@@ -1,13 +1,10 @@
 package commands;
 
 import client.Client;
-import logic.CollectionManager;
 import logic.Packet;
 import logic.Route;
 import logic.User;
 import server.Server;
-
-import java.sql.SQLException;
 
 
 public class CommandAdd extends Command {

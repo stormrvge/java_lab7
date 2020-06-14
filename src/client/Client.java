@@ -101,7 +101,7 @@ public class Client {
             try {
                 channel.write(wrap);
                 System.out.println();
-                Thread.sleep(50);
+                Thread.sleep(70);
             } catch (IOException e) {
                 reconnect();
                 System.err.println(e.getMessage());

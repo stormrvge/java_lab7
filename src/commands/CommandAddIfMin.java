@@ -3,6 +3,7 @@ package commands;
 import client.Client;
 import logic.Packet;
 import logic.Route;
+import logic.User;
 import server.Server;
 
 public class CommandAddIfMin extends Command {
@@ -12,8 +13,8 @@ public class CommandAddIfMin extends Command {
         return require_login;
     }
 
-    public String execOnServer(Server server, Object object) {
-        return server.getManager().add_if_min((Route) object);
+    public String execOnServer(Server server, Object object, User user) {
+        return server.getManager().add_if_min(server, (Route) object, user);
     }
 
     @Override
