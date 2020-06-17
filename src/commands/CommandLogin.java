@@ -33,7 +33,7 @@ public class CommandLogin extends Command {
 
     public String execOnServer(Server server, Object object, User user) {
         try {
-            if (server.login(user)) {
+            if (server.getSqlStatements().login(user)) {
                 return "U login successfully!";
             } else {
                 return "Incorrect login or password";

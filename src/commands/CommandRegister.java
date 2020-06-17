@@ -27,7 +27,7 @@ public class CommandRegister extends Command {
 
     public String execOnServer(Server server, Object object, User user) {
         try {
-            server.addUser(user);
+            server.getSqlStatements().addUser(user);
         } catch (SQLException e) {
             System.err.println(e.getMessage());
             return "User hasn't been registered!";

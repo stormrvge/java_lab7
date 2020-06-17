@@ -107,8 +107,8 @@ public class CollectionManager implements Serializable {
             lock.lock();
             route.add(object);
 
-            server.save(object, user);
-            object.setId(server.getId());
+            server.getSqlStatements().save(object, user);
+            object.setId(server.getSqlStatements().getId());
             lock.unlock();
             return "Element was added";
         } catch (SQLException e) {
@@ -136,7 +136,7 @@ public class CollectionManager implements Serializable {
                 oldElement.setTo(newElement.getTo());
                 oldElement.setDistance(newElement.getDistance());
 
-                server.updateId(id, newElement, user);
+                server.getSqlStatements().updateId(id, newElement, user);
 
                 lock.unlock();
                 return ("Element with " + id + " was updated!");
@@ -158,7 +158,7 @@ public class CollectionManager implements Serializable {
         try {
             removeByOwner(user.getUsername(), id);
 
-            server.remove_route(id, user.getUsername());
+            server.getSqlStatements().remove_route(id, user.getUsername());
             lock.unlock();
             return ("Element with " + id + " was removed!");
         } catch (OutOfBoundsException e) {
@@ -181,7 +181,7 @@ public class CollectionManager implements Serializable {
     public String clear(Server server, User user) {             // FIX
         lock.lock();
         try {
-            server.clearUserCollection(user.getUsername());
+            server.getSqlStatements().clearUserCollection(user.getUsername());
 
             ResultSet res = server.getDataBase().createStatement(ResultSet
                     .TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
@@ -208,7 +208,7 @@ public class CollectionManager implements Serializable {
             int id = route.get(index).getId();
             removeByOwner(user.getUsername(), id);
 
-            server.remove_route(id, user.getUsername());
+            server.getSqlStatements().remove_route(id, user.getUsername());
             lock.unlock();
             return ("Element with " + id + " was removed!");
         } catch (PermissionDeniedException e) {
@@ -233,8 +233,8 @@ public class CollectionManager implements Serializable {
                 lock.unlock();
                 return "That element isn't maximal in collection.";
             } else {
-                server.save(object, user);
-                object.setId(server.getId());
+                server.getSqlStatements().save(object, user);
+                object.setId(server.getSqlStatements().getId());
                 route.add(object);
                 lock.unlock();
                 return "Element has been added successfully.";
@@ -255,8 +255,8 @@ public class CollectionManager implements Serializable {
                 lock.unlock();
                 return "That element isn't minimal in collection.";
             } else {
-                server.save(object, user);
-                object.setId(server.getId());
+                server.getSqlStatements().save(object, user);
+                object.setId(server.getSqlStatements().getId());
                 route.add(object);
                 lock.unlock();
                 return "Element has been added successfully.";

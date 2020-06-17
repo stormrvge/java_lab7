@@ -15,9 +15,8 @@ public class Reader extends Thread {
     private final Server server;
     private final Socket clientSocket;
     private ObjectOutputStream out;
-    private ObjectInputStream objectInputStream;
 
-    Reader(Server server, Socket clientSocket) throws IOException {
+    Reader(Server server, Socket clientSocket) {
         this.clientSocket = clientSocket;
         this.server = server;
     }
@@ -37,7 +36,8 @@ public class Reader extends Thread {
                     Command commandServer = packet.getCommand();
                     User user = packet.getUser();
 
-                    if (commandServer != null && (server.login(user) || !commandServer.getRequireLogin())) {
+                    if (commandServer != null &&
+                            (server.getSqlStatements().login(user) || !commandServer.getRequireLogin())) {
                         Handler handler = new Handler(packet, server);
                         Future<String> result = handlerExecutor.submit(handler);
 
@@ -66,8 +66,7 @@ public class Reader extends Thread {
     }
 
     private Packet readMessage() throws IOException, ClassNotFoundException {
-        objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
-
+        ObjectInputStream objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
         return (Packet) objectInputStream.readObject();
     }
 }

@@ -2,33 +2,23 @@ package server;
 
 import commands.*;
 import logic.CollectionManager;
-import logic.Route;
-import logic.User;
 
 import java.io.*;
 import java.net.*;
 import java.sql.*;
 
 public class Server {
-    private int port;
+    private final int port;
     private static Socket clientSocket;
     private static ServerSocket server;
-    private BufferedReader reader;
-    private String user;
-    private String password;
+    private SQLStatements sqlStatements;
+    private final String user;
+    private final String password;
 
     private Connection database;
-    private Invoker invoker;
     private static CollectionManager manager;
     private int numOfClients;
 
-    private PreparedStatement add_user;
-    private PreparedStatement login;
-    private PreparedStatement add_route;
-    private PreparedStatement rm_route;
-    private PreparedStatement get_id;
-    private PreparedStatement clear_user;
-    private PreparedStatement update_id;
 
     public Server (int port, String user, String password) {
         this.port = port;
@@ -42,22 +32,18 @@ public class Server {
             server.setSoTimeout(1000);
             System.out.println("Server started on: " + server.getInetAddress());
 
-            //database = DriverManager.getConnection("jdbc:postgresql://pg:5432/studs",
-                    //user, password);
-            database = DriverManager.getConnection("jdbc:postgresql://localhost:5432/lab7",
-                    "lab7", "lab7");
+            database = DriverManager.getConnection("jdbc:postgresql://pg:5432/studs", user, password);
 
-            invoker = new Invoker();
+            Invoker invoker = new Invoker();
             manager = new CollectionManager();
+            sqlStatements = new SQLStatements(database, manager);
 
-            initStatements();
-            load();
             registerCommands(invoker);
-            reader = new BufferedReader(new InputStreamReader(System.in));
+            BufferedReader inputCmd = new BufferedReader(new InputStreamReader(System.in));
 
             System.out.println("Type \"help\" for list of available commands.");
             while (!server.isClosed()) {
-                if (!reader.ready()) {
+                if (!inputCmd.ready()) {
                     try {
                         clientSocket = server.accept();
                         if (clientSocket != null) {
@@ -68,8 +54,8 @@ public class Server {
                         System.out.print("");
                     }
                 }
-                else if (reader.ready()) {
-                    Command command = invoker.createCommand(reader.readLine().trim());
+                else if (inputCmd.ready()) {
+                    Command command = invoker.createCommand(inputCmd.readLine().trim());
                     command.serverCmd(manager);
                 }
             }
@@ -79,7 +65,6 @@ public class Server {
             System.out.println("Server closed.");
         }
     }
-
 
     static void closeConnection() {
         try {
@@ -101,71 +86,11 @@ public class Server {
         } catch (NullPointerException e) {
             System.err.println();
         }
-
-    }
-
-    private void initStatements() throws SQLException {
-        add_user = database.prepareStatement("INSERT INTO users (login, password) VALUES " +
-                "(?, ?)");
-        login = database.prepareStatement("SELECT * FROM users WHERE login LIKE ? AND password LIKE ?");
-        add_route = database.prepareStatement("INSERT INTO collection (id, name, coordinatex, coordinatey, " +
-                "locationfromx, locationfromy, locationfromz, locationtox, locationtoy, locationtoz, distance, owner) " +
-                "VALUES (DEFAULT, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        rm_route = database.prepareStatement("DELETE FROM collection WHERE id = ? AND owner = ?");
-        get_id = database.prepareStatement("SELECT currval('collection_id_seq')");
-        clear_user = database.prepareStatement("DELETE FROM collection WHERE owner = ?");
-        update_id = database.prepareStatement("UPDATE collection SET name = ?, coordinatex = ?, coordinatey = ?, " +
-                "locationfromx = ?, locationfromy = ?, locationfromz = ?, locationtox = ?, locationtoy = ?, " +
-                "locationtoz = ?, distance = ? WHERE id = ? AND owner = ?");
     }
 
     private void registerCommands(Invoker invoker) {
         invoker.register("exit", new CommandExit());
         invoker.register("help", new CommandHelp());
-    }
-
-    public void addUser(User user) throws SQLException {
-        add_user.setString(1, user.getUsername());
-        add_user.setString(2, user.getPassword());
-        add_user.executeUpdate();
-    }
-
-    public void updateId(int id, Route object, User user) throws SQLException {
-        object.update_id(update_id, user, id);
-    }
-
-    public void save(Route object, User user) throws SQLException {
-        object.add(add_route, user);
-    }
-
-    public void remove_route(int id, String owner) throws SQLException {
-        rm_route.setInt(1, id);
-        rm_route.setString(2, owner);
-        rm_route.executeUpdate();
-    }
-
-    public boolean login(User user) throws SQLException {
-        login.setString(1, user.getUsername());
-        login.setString(2, user.getPassword());
-        ResultSet res = login.executeQuery();
-        return (res.next());
-    }
-
-    public int getId() throws SQLException {
-        ResultSet res = get_id.executeQuery();
-        if (res.next()) return res.getInt(1);
-        else return -1;
-    }
-
-    public void clearUserCollection(String owner) throws SQLException {
-        clear_user.setString(1,owner);
-        clear_user.executeUpdate();
-    }
-
-    private void load() throws SQLException {
-        ResultSet res = database.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
-                .executeQuery("SELECT * FROM collection");
-        manager.load(res);
     }
 
     public static String parseIOException(IOException e) {
@@ -186,9 +111,12 @@ public class Server {
         return database;
     }
 
+    public SQLStatements getSqlStatements() {return sqlStatements;}
+
     public int getNumOfClients() {
         return numOfClients;
     }
+
     public void addNumOfClients() {
         this.numOfClients++;
     }
