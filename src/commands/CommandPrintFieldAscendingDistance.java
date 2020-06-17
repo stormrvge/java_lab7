@@ -7,7 +7,7 @@ import server.Server;
 
 
 public class CommandPrintFieldAscendingDistance extends Command {
-    private boolean require_login = true;
+    private final boolean require_login = true;
 
     public boolean getRequireLogin() {
         return require_login;

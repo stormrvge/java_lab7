@@ -9,7 +9,7 @@ import server.Server;
  * This class of print_unique_distance command. This class just call method from Control Unit.
  */
 public class CommandPrintUniqueDistance extends Command {
-    private boolean require_login = true;
+    private final boolean require_login = true;
 
     public boolean getRequireLogin() {
         return require_login;

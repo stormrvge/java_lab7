@@ -17,7 +17,7 @@ public class Route implements Comparable<Route>, Serializable {
     private static int lastIdAdded = 1;
     private String name; //Поле не может быть null, Строка не может быть пустой
     private Coordinates coordinates; //Поле не может быть null
-    private java.time.ZonedDateTime creationDate; //Поле не может быть null, Значение этого поля должно генерироваться автоматически
+    private final java.time.ZonedDateTime creationDate; //Поле не может быть null, Значение этого поля должно генерироваться автоматически
     private Location from; //Поле не может быть null
     private Location to; //Поле может быть null
     private float distance; //Значение поля должно быть больше 1
@@ -33,7 +33,7 @@ public class Route implements Comparable<Route>, Serializable {
         creationDate = java.time.ZonedDateTime.now();
     }
 
-    Route(String name, Coordinates coordinates, Location from, Location to, float distance)
+    Route(String name, Coordinates coordinates, Location from, Location to, float distance, String owner)
             throws NullPointerException, OutOfBoundsException {
         if (distance < 1) throw new OutOfBoundsException();
         if (name == null || coordinates == null || from == null || to == null)
@@ -46,6 +46,7 @@ public class Route implements Comparable<Route>, Serializable {
         this.from = from;
         this.to = to;
         this.distance = distance;
+        this.owner = owner;
     }
 
     public void setName(String name) {
@@ -99,14 +100,6 @@ public class Route implements Comparable<Route>, Serializable {
         this.id = id;
     }
 
-    public void setCreationDate() {this.creationDate = java.time.ZonedDateTime.now();}
-    public void setCreationDate(boolean bool) {this.creationDate = null;}
-    public void setCreationDateForParse (java.time.ZonedDateTime time) {
-        this.creationDate = time;
-    }
-
-    public static void resetId() {lastIdAdded = 1;}
-
     public int getId() {return this.id;}
 
     public String getName() {return this.name;}
@@ -119,51 +112,31 @@ public class Route implements Comparable<Route>, Serializable {
 
     public float getDistance() {return distance;}
 
-    public java.time.ZonedDateTime getCreationDate() {return creationDate;}
+    public String getOwner() {return owner;}
 
-    @Override
-    public int compareTo(Route route) {
-        if (distance > route.getDistance()) return 1;
-        else if (distance == route.getDistance()) return 0;
-        else return  -1;
-    }
-
-    @Override
-    public String toString() {
-        if (to == null) {
-            return ("Route [id = " + id + ", name = " + name + ", coordinates = " + coordinates.toString() +
-                    ", creation date = " + creationDate.getYear() + "-"  + creationDate.getMonthValue() + "-" +
-                    creationDate.getDayOfMonth() + ", location from = " + from.toString() + ", location to = null"
-                    + ", distance = " + distance + "]");
-        }
-        else {
-            return ("Route [id = " + id + ", name = " + name + ", coordinates = " + coordinates.toString() +
-                    ", creation date = " + creationDate.getYear() + "-"  + creationDate.getMonthValue() + "-" +
-                    creationDate.getDayOfMonth() + ", location from = " + from.toString() + ", location to = " +
-                    to.toString() + ", distance = " + distance + "]");
-        }
-    }
-
-    public static Route generateObjectUserInput() {
-        Scanner input = new Scanner(System.in);
-
-        System.out.println("Enter name: ");
-        String name = input.nextLine();
-
-        Location locationFrom = Location.generateObjectUserInput();
-        Location locationTo = Location.generateObjectUserInput();
-        //LOCATION TO CAN BE NULL!
-
-        Coordinates coordinates = Coordinates.generateObjectUserInput();
-
-        System.out.println("Enter distance (float): ");
-        float distance = Float.parseFloat(input.nextLine());
+    public static Route generateObjectUserInput(User user) {
         try {
-            return new Route(name, coordinates, locationFrom, locationTo, distance);
+            Scanner input = new Scanner(System.in);
+
+            System.out.println("Enter name: ");
+            String name = input.nextLine();
+
+            Location locationFrom = Location.generateObjectUserInput();
+            Location locationTo = Location.generateObjectUserInput();
+            //LOCATION TO CAN BE NULL!
+
+            Coordinates coordinates = Coordinates.generateObjectUserInput();
+
+            System.out.println("Enter distance (float): ");
+            float distance = Float.parseFloat(input.nextLine());
+            return new Route(name, coordinates, locationFrom, locationTo, distance, user.getUsername());
         } catch (OutOfBoundsException e) {
             System.out.println("Out of bounds exception");
+        } catch (NumberFormatException e) {
+            System.err.println("Incorrect format for that field.");
+        } catch (NullPointerException e) {
+            System.err.println("Element cant be null");
         }
-
         return null;
     }
 
@@ -215,5 +188,26 @@ public class Route implements Comparable<Route>, Serializable {
         st.setString(12, user.getUsername());
 
         st.executeUpdate();
+    }
+
+    @Override
+    public int compareTo(Route route) {
+        return Float.compare(distance, route.getDistance());
+    }
+
+    @Override
+    public String toString() {
+        if (to == null) {
+            return ("Route [id = " + id + ", name = " + name + ", coordinates = " + coordinates.toString() +
+                    ", creation date = " + creationDate.getYear() + "-"  + creationDate.getMonthValue() + "-" +
+                    creationDate.getDayOfMonth() + ", location from = " + from.toString() + ", location to = null"
+                    + ", distance = " + distance + "]");
+        }
+        else {
+            return ("Route [id = " + id + ", name = " + name + ", coordinates = " + coordinates.toString() +
+                    ", creation date = " + creationDate.getYear() + "-"  + creationDate.getMonthValue() + "-" +
+                    creationDate.getDayOfMonth() + ", location from = " + from.toString() + ", location to = " +
+                    to.toString() + ", distance = " + distance + ", owner = " + owner + "]");
+        }
     }
 }

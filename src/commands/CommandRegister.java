@@ -8,7 +8,7 @@ import server.Server;
 import java.sql.SQLException;
 
 public class CommandRegister extends Command {
-    private boolean require_login = false;
+    private final boolean require_login = false;
 
     public boolean getRequireLogin() {
         return require_login;
@@ -20,13 +20,12 @@ public class CommandRegister extends Command {
             System.err.println("You cant take " + (args.length - 1) + " arguments");
             return null;
         } else {
-            User user = new User(args[0], args[1]);
-            return new Packet(this, user);
+            User user = new User(args[0], CommandLogin.hash(args[1]));
+            return new Packet(this, null, user);
         }
     }
 
-    public String execOnServer(Server server, Object object) {
-        User user = (User) object;
+    public String execOnServer(Server server, Object object, User user) {
         try {
             server.addUser(user);
         } catch (SQLException e) {

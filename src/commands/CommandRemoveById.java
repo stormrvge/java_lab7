@@ -20,20 +20,14 @@ public class CommandRemoveById extends Command {
 
     @Override
     public String execOnServer(Server server, Object args, User user) {
-        try {
-            server.remove_route((int) args);
-            return "Element with id: " + args + " was removed!";
-        } catch (SQLException e) {
-            System.err.println(e.getMessage());
-        }
-        return "Element wasn't removed";
+        return server.getManager().remove_by_id(server, (int) args, user);
     }
 
     @Override
     public Packet execOnClient(Client client, String ... args) {
         if (client.getUser().getLoginState()) {
             Integer id = Integer.parseInt(args[0]);
-            return new Packet(this, id);
+            return new Packet(this, id,client.getUser());
         } else {
             System.out.println("You must login!");
             return null;

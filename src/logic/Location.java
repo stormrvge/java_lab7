@@ -76,7 +76,7 @@ public class Location implements Serializable {
         return ("{x: " + x + ", y: " + y + ", z: " + z + "}");
     }
 
-    public static Location generateObjectUserInput() {
+    public static Location generateObjectUserInput() throws NullPointerException, NumberFormatException {
         Scanner input = new Scanner(System.in);
 
         System.out.println("Enter coordinate x (Float, Location from): ");
@@ -85,12 +85,6 @@ public class Location implements Serializable {
         Integer y_From = Integer.parseInt(input.nextLine());
         System.out.println("Enter coordinate z (int, Location from): ");
         int z_From = Integer.parseInt(input.nextLine());
-
-        try {
-            return new Location(x_From, y_From, z_From);
-        } catch (NullPointerException e) {
-            System.out.println("Argument cant be null!");
-        }
-        return null;
+        return new Location(x_From, y_From, z_From);
     }
 }

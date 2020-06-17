@@ -21,8 +21,8 @@ public class CommandAddIfMax extends Command {
     @Override
     public Packet execOnClient(Client client, String ... args) {
         if (client.getUser().getLoginState()) {
-            Route route = Route.generateObjectUserInput();
-            return new Packet(this, route);
+            Route route = Route.generateObjectUserInput(client.getUser());
+            return new Packet(this, route, client.getUser());
         } else {
             System.err.println("You must login!");
             return null;

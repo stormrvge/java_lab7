@@ -15,7 +15,7 @@ import java.util.ArrayList;
  */
 
 public class CommandExecuteScript extends Command {
-    private boolean require_login = true;
+    private final boolean require_login = true;
 
     private Client client;
     private Invoker invoker;
@@ -74,7 +74,7 @@ public class CommandExecuteScript extends Command {
                     Command command = invoker.createCommand(cmd);
                     String[] args = invoker.getArgs();
                     if (!invoker.getCommandName().equals("execute_script")) {
-                        Packet packet = new Packet(command, args);
+                        Packet packet = new Packet(command, args, null);
                         packetArrayList.add(packet);
                     }
                     else if (invoker.getCommandName().equals("execute_script")) {

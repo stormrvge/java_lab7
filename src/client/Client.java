@@ -74,7 +74,7 @@ public class Client {
                 if (packets != null) {
                     for (Packet packet : packets) {
                         sendPacket(packet);
-                        Thread.sleep(50);
+                        Thread.sleep(70);
                     }
                 }
             }
@@ -85,14 +85,6 @@ public class Client {
         }
     }
 
-    private static byte[] serializeObject(Object obj) throws IOException {
-        ByteArrayOutputStream b = new ByteArrayOutputStream();
-        ObjectOutputStream out  = new ObjectOutputStream(b);
-
-        out.writeObject(obj);
-        return  b.toByteArray();
-    }
-
     private void sendPacket(Packet packet) throws InterruptedException, IOException {
         if (packet != null) {
             byte[] message = serializeObject(packet);
@@ -101,7 +93,7 @@ public class Client {
             try {
                 channel.write(wrap);
                 System.out.println();
-                Thread.sleep(70);
+                Thread.sleep(150);
             } catch (IOException e) {
                 reconnect();
                 System.err.println(e.getMessage());
@@ -110,22 +102,21 @@ public class Client {
         }
     }
 
-    private void readMessage() throws IOException {
+    private void readMessage() throws IOException, InterruptedException {
         ByteBuffer msg = ByteBuffer.allocate(4096);
+        msg.clear();
 
         if (channel.isConnected()) {
             channel.read(msg);
 
             if (msg.position() == 0) {
-                System.out.println("Server is working in blocking mode. You must wait for your queue.");
+                System.out.println("Now server is locked. Wait please...");
                 try {
-                    System.out.println("Waiting...");
-                    Thread.sleep(5000);
+                    Thread.sleep(1000);
                     readMessage();
                 } catch (InterruptedException e) {
                     System.err.println(e.getMessage());
                 }
-
             }
 
             try {
@@ -143,9 +134,17 @@ public class Client {
         }
     }
 
+    private static byte[] serializeObject(Object obj) throws IOException {
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        ObjectOutputStream out  = new ObjectOutputStream(b);
+
+        out.writeObject(obj);
+        return  b.toByteArray();
+    }
+
     private static Object deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
-        ByteArrayInputStream byteStream = new ByteArrayInputStream(bytes);
-        ObjectInputStream objStream = new ObjectInputStream(byteStream);
+        ByteArrayInputStream byteArrayInput = new ByteArrayInputStream(bytes);
+        ObjectInputStream objStream = new ObjectInputStream(byteArrayInput);
 
         return objStream.readObject();
     }

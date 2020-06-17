@@ -1,18 +1,16 @@
 package logic;
 
+import commands.OutOfBoundsException;
+import commands.PermissionDeniedException;
 import server.Server;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.NoSuchElementException;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * This class realizing methods for commands.
@@ -20,16 +18,21 @@ import java.util.stream.Stream;
 public class CollectionManager implements Serializable {
     private ArrayList<Route> route;
     private java.time.ZonedDateTime date;
+    private final ReentrantLock lock;
 
     public CollectionManager() {
         date = java.time.ZonedDateTime.now();
         route = new ArrayList<>();
+        lock = new ReentrantLock();
     }
 
     public void load(ResultSet res) throws SQLException {
+        lock.lock();
+        route.clear();
         while (res.next()) {
             route.add(Route.generateFromSQL(res));
         }
+        lock.unlock();
     }
 
     /**
@@ -56,8 +59,7 @@ public class CollectionManager implements Serializable {
      * Method "info" which displays short instruction of every command program.
      */
     public void helpServer() {
-        System.out.println("save: сохранить коллекцию в файл" +
-                "\nexit: завершить программу (без сохранения в файл)");
+        System.out.println("exit: закрыть сервер");
     }
 
 
@@ -65,15 +67,18 @@ public class CollectionManager implements Serializable {
      * This method print info about collection.
      */
     public String info() {
+        lock.lock();
         try {
             Field arrayListField = CollectionManager.class.getDeclaredField("route");
             String arrayListType = arrayListField.getGenericType().getTypeName();
             String[] className = arrayListType.replace("<", " ").
                     replace(">", " ").split("[ .]");
+            lock.unlock();
             return ("Type: "  + className[4] +   // className[5]
                     ", initializing date: " + date +
                     ", collection size: " + route.size());
         } catch (NoSuchFieldException e) {
+            lock.unlock();
             return ("Problem with general class. Cant find type of class!");
         }
     }
@@ -82,11 +87,13 @@ public class CollectionManager implements Serializable {
      * This method shows a elements in collection.
      */
     public String show() {
+        lock.lock();
         if (route.isEmpty()) return ("Collection is empty.");
         else {
             String str = route.stream()
                     .map(Route::toString)
                     .collect(Collectors.joining(("\n")));
+            lock.unlock();
             return str;
         }
     }
@@ -97,13 +104,20 @@ public class CollectionManager implements Serializable {
      */
     public String add(Server server, Route object, User user) {
         try {
+            lock.lock();
+            route.add(object);
+
             server.save(object, user);
             object.setId(server.getId());
-            route.add(object);
+            lock.unlock();
             return "Element was added";
         } catch (SQLException e) {
+            lock.unlock();
             System.out.println(e.getMessage());
+        } catch (NullPointerException e) {
+            return e.getMessage();
         }
+        lock.unlock();
         return "Element wasn't added";
     }
 
@@ -112,6 +126,7 @@ public class CollectionManager implements Serializable {
      * @param id - id of element which we want to update.
      */
     public String update_id(Integer id, Route newElement, Server server, User user) {
+        lock.lock();
         try {
             Route oldElement = route.get(getIndexById(id));
             if (newElement != null) {
@@ -123,12 +138,14 @@ public class CollectionManager implements Serializable {
 
                 server.updateId(id, newElement, user);
 
-
+                lock.unlock();
                 return ("Element with " + id + " was updated!");
             }
         } catch (Exception e) {
+            lock.unlock();
             return ("No element with such id!");
         }
+        lock.unlock();
         return null;
         }
 
@@ -136,27 +153,46 @@ public class CollectionManager implements Serializable {
      * This method remove's element from collection by id.
      * @param id - argument from console.
      */
-    public String remove_by_id(Integer id) {
+    public String remove_by_id(Server server, Integer id, User user) {
+        lock.lock();
         try {
-            route = route.stream()
-                    .filter(Route -> Route.getId() != id)
-                    .collect(Collectors.toCollection(ArrayList::new));
+            removeByOwner(user.getUsername(), id);
+
+            server.remove_route(id, user.getUsername());
+            lock.unlock();
             return ("Element with " + id + " was removed!");
-        } catch (Exception e) {
+        } catch (OutOfBoundsException e) {
+            lock.unlock();
             return ("No element with such id!");
+        } catch (PermissionDeniedException e) {
+            lock.unlock();
+            return ("Permission denied.");
+        } catch (SQLException e) {
+            lock.unlock();
+            return (e.getMessage());
         }
+        /*
+            route = route.stream()
+                    .filter(x -> (x.getId() != id || !x.getOwner().equals(user.getUsername())))
+                    .collect(Collectors.toCollection(ArrayList::new));  //NULL
+             */
     }
 
-    /**
-     * This method clear's collection (deleting all elements).
-     */
-    public String clear(Server server, User user) {
+    public String clear(Server server, User user) {             // FIX
+        lock.lock();
         try {
             server.clearUserCollection(user.getUsername());
-            removeByOwner(user.getUsername());
+
+            ResultSet res = server.getDataBase().createStatement(ResultSet
+                    .TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
+                    .executeQuery("SELECT * FROM collection");
+
+            load(res);
+            lock.unlock();
             return "Your collection was cleared.";
         } catch (SQLException e) {
             System.err.println(e.getMessage());
+            lock.unlock();
             return "Your collection wasn't cleared.";
         }
     }
@@ -166,13 +202,24 @@ public class CollectionManager implements Serializable {
      * This method delete element from collection by index.
      * @param index - argument from console.
      */
-    public String remove_at(Integer index) {
+    public String remove_at(Server server, int index, User user) {
+        lock.lock();
         try {
-            int idx = index;
-            route.remove(idx);
-            return ("Element with index " + index + " was deleted.");
-        } catch (Exception e) {
-            return ("No element with such index!");
+            int id = route.get(index).getId();
+            removeByOwner(user.getUsername(), id);
+
+            server.remove_route(id, user.getUsername());
+            lock.unlock();
+            return ("Element with " + id + " was removed!");
+        } catch (PermissionDeniedException e) {
+            lock.unlock();
+            return "Permission denied";
+        } catch (IndexOutOfBoundsException | OutOfBoundsException e) {
+            lock.unlock();
+            return "No element with such id";
+        } catch (SQLException e) {
+            lock.unlock();
+            return e.getMessage();
         }
     }
 
@@ -180,35 +227,45 @@ public class CollectionManager implements Serializable {
      * This method will add new element, if distance of new element is maximal in collection.
      */
     public String add_if_max(Server server, Route object, User user) {
+        lock.lock();
         try {
             if(route.size() > 0 && route.stream().max(Comparator.naturalOrder()).get().compareTo(object) > 0) {
+                lock.unlock();
                 return "That element isn't maximal in collection.";
             } else {
                 server.save(object, user);
                 object.setId(server.getId());
                 route.add(object);
+                lock.unlock();
                 return "Element has been added successfully.";
             }
         } catch (SQLException e) {
+            lock.unlock();
             System.err.println(e.getMessage());
         }
+        lock.unlock();
         return "Element wasn't added";
     }
 
 
     public String add_if_min(Server server, Route object, User user) {
+        lock.lock();
         try {
-            if(route.size() > 0 && route.stream().min(Comparator.naturalOrder()).get().compareTo(object) > 0) {
+            if(route.size() > 0 && route.stream().min(Comparator.naturalOrder()).get().compareTo(object) < 0) {
+                lock.unlock();
                 return "That element isn't minimal in collection.";
             } else {
                 server.save(object, user);
                 object.setId(server.getId());
                 route.add(object);
+                lock.unlock();
                 return "Element has been added successfully.";
             }
         } catch (SQLException e) {
+            lock.unlock();
             System.err.println(e.getMessage());
         }
+        lock.unlock();
         return "Element wasn't added";
     }
 
@@ -227,11 +284,13 @@ public class CollectionManager implements Serializable {
 
 
     public String print_unique_distance() {
+        lock.lock();
         HashSet<Float> floatHashSet = route.stream()
                 .sorted(Route::compareTo)
                 .map(Route::getDistance)
                 .collect(Collectors.toCollection(HashSet::new));
 
+        lock.unlock();
         return ("Unique distance: " + floatHashSet.toString());
     }
 
@@ -239,6 +298,7 @@ public class CollectionManager implements Serializable {
      * This method prints sorted collection in ascending by distance field.
      */
     public String print_field_ascending_distance() {
+        lock.lock();
         ArrayList<Route> sortedRoute = route.stream()
                 .sorted(Comparator.comparing(Route::getDistance))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -250,6 +310,7 @@ public class CollectionManager implements Serializable {
             if (i + 1 < sortedRoute.size()) str += (", ");
         }
 
+        lock.unlock();
         return str + "]";
     }
 
@@ -261,17 +322,31 @@ public class CollectionManager implements Serializable {
      * @throws Exception - throws exception, if no elements with id from parameter.
      */
     private int getIndexById(int id) throws Exception {
+        lock.lock();
         for (int i = 0; i < route.size(); i++) {
             if (route.get(i).getId() == id) {
+                lock.unlock();
                 return i;
             }
-        } throw new Exception("No such id");
+        }
+        lock.unlock();
+        throw new Exception("No such id");
     }
 
-    private void removeByOwner(String owner) {
-        route = route.stream()
-                .filter(x -> x.getName().equals(owner))
-                .collect(Collectors.toCollection(ArrayList::new));
+    private void removeByOwner(String owner, int id) throws PermissionDeniedException, OutOfBoundsException {
+        boolean idIsFound = false;
+        Iterator<Route> iterator = route.iterator();
+        while (iterator.hasNext() && !idIsFound) {
+            Route checkRoute = iterator.next();
+            if (checkRoute.getId() == id && checkRoute.getOwner().equals(owner)) {
+                iterator.remove();
+                idIsFound = true;
+            } else if (checkRoute.getId() == id && !checkRoute.getOwner().equals(owner)) {
+                throw new PermissionDeniedException();
+            } else if (!iterator.hasNext()) {
+                throw new OutOfBoundsException();
+            }
+        }
     }
 
     private void setInitDate(java.time.ZonedDateTime date) {

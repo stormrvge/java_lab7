@@ -9,7 +9,7 @@ import server.Server;
  * This class of info command. This class just call method from Control Unit.
  */
 public class CommandInfo extends Command {
-    private boolean require_login = true;
+    private final boolean require_login = true;
 
     public boolean getRequireLogin() {
         return require_login;

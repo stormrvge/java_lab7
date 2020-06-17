@@ -24,7 +24,7 @@ public class CommandUpdateId extends Command {
         try {
             if (client.getUser().getLoginState()) {
                 int id = Integer.parseInt(args[0]);
-                Route route = Route.generateObjectUserInput();
+                Route route = Route.generateObjectUserInput(client.getUser());
                 Object[] objects = new Object[] {id, route};
                 return new Packet(this, objects, client.getUser());
             } else {

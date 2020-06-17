@@ -9,10 +9,8 @@ import server.Server;
 import java.io.Serializable;
 
 public abstract class Command implements Serializable {
-    private boolean require_login;
-
     public boolean getRequireLogin() {
-        return require_login;
+        return false;
     }
 
     public String execOnServer(Server server, Object args, User user) {
@@ -20,10 +18,10 @@ public abstract class Command implements Serializable {
     }
 
     public Packet execOnClient(Client client, String ... args) {
-        return new Packet(this);
+        return new Packet(this, null, null);
     }
 
-    public void serverCmd(CollectionManager collectionManager, Object args) {
+    public void serverCmd(CollectionManager collectionManager) {
 
     }
 }

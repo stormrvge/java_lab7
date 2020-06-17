@@ -2,7 +2,6 @@ package server;
 
 import commands.*;
 import logic.CollectionManager;
-import logic.Packet;
 import logic.Route;
 import logic.User;
 
@@ -14,14 +13,13 @@ public class Server {
     private int port;
     private static Socket clientSocket;
     private static ServerSocket server;
-    private InputStream in;
-    private ObjectOutputStream out;
     private BufferedReader reader;
+    private String user;
+    private String password;
 
     private Connection database;
     private Invoker invoker;
     private static CollectionManager manager;
-    private static String path = System.getenv("lab7");
     private int numOfClients;
 
     private PreparedStatement add_user;
@@ -31,10 +29,11 @@ public class Server {
     private PreparedStatement get_id;
     private PreparedStatement clear_user;
     private PreparedStatement update_id;
-    private PreparedStatement creation_date;
 
-    public Server (int port) {
+    public Server (int port, String user, String password) {
         this.port = port;
+        this.user = user;
+        this.password = password;
     }
 
     public void process() {
@@ -43,14 +42,16 @@ public class Server {
             server.setSoTimeout(1000);
             System.out.println("Server started on: " + server.getInetAddress());
 
+            //database = DriverManager.getConnection("jdbc:postgresql://pg:5432/studs",
+                    //user, password);
             database = DriverManager.getConnection("jdbc:postgresql://localhost:5432/lab7",
                     "lab7", "lab7");
 
             invoker = new Invoker();
             manager = new CollectionManager();
 
-            initStatements();       //ANOTHER PLACE
-            load();                 //ANOTHER PLACE
+            initStatements();
+            load();
             registerCommands(invoker);
             reader = new BufferedReader(new InputStreamReader(System.in));
 
@@ -58,15 +59,18 @@ public class Server {
             while (!server.isClosed()) {
                 if (!reader.ready()) {
                     try {
-                        acceptConnection();
+                        clientSocket = server.accept();
+                        if (clientSocket != null) {
+                            Reader reader = new Reader(this, clientSocket);
+                            reader.start();
+                        }
                     } catch (SocketTimeoutException e) {
                         System.out.print("");
                     }
-
                 }
                 else if (reader.ready()) {
                     Command command = invoker.createCommand(reader.readLine().trim());
-                    command.serverCmd(manager, path);
+                    command.serverCmd(manager);
                 }
             }
         } catch (IOException | SQLException e) {
@@ -76,58 +80,8 @@ public class Server {
         }
     }
 
-    private void acceptConnection() throws IOException {
-        clientSocket = server.accept();
-        ++numOfClients;
 
-        System.out.println("Server accepted client number " + numOfClients);
-
-        if (clientSocket != null) {
-            try {
-                while (true) {
-                    Packet packet = readMessage();
-                    Command commandServer = packet.getCommand();
-                    Object args = packet.getArgument();
-                    User user = packet.getUser();
-
-                    if (commandServer != null && (login(user) || !commandServer.getRequireLogin())) {
-                        String message = commandServer.execOnServer(this, args, user);
-                        sendMessage(message);
-                    } else {
-                        sendMessage("U must login!");
-                    }
-                }
-            } catch (NullPointerException | IOException e) {
-                System.out.println("Client " + numOfClients + " was disconnected!");
-                closeConnection();
-            } catch (ClassNotFoundException e) {
-                System.err.println("Class not found: " + e.getMessage());
-                closeConnection();
-            } catch (InterruptedException e) {
-                System.out.println(e.getMessage());
-                closeConnection();
-            } catch (SQLException e) {
-                System.out.println(e.getMessage());
-            }
-        }
-    }
-
-    private Packet readMessage() throws IOException, ClassNotFoundException {
-        in = clientSocket.getInputStream();
-        out = new ObjectOutputStream(clientSocket.getOutputStream());
-        ObjectInputStream objectInputStream = new ObjectInputStream(in);
-
-        return (Packet) objectInputStream.readObject();
-    }
-
-    private void sendMessage(String message) throws IOException, InterruptedException {
-        Packet packet = new Packet(message);
-        out.writeObject(packet);
-        out.flush();
-        Thread.sleep(70);
-    }
-
-    private static void closeConnection() {
+    static void closeConnection() {
         try {
             clientSocket.close();
         } catch (IOException e) {
@@ -151,19 +105,18 @@ public class Server {
     }
 
     private void initStatements() throws SQLException {
-        add_user = database.prepareStatement("INSERT INTO users (id, login, password) VALUES " +
-                "(DEFAULT, ?, ?)");
+        add_user = database.prepareStatement("INSERT INTO users (login, password) VALUES " +
+                "(?, ?)");
         login = database.prepareStatement("SELECT * FROM users WHERE login LIKE ? AND password LIKE ?");
         add_route = database.prepareStatement("INSERT INTO collection (id, name, coordinatex, coordinatey, " +
                 "locationfromx, locationfromy, locationfromz, locationtox, locationtoy, locationtoz, distance, owner) " +
                 "VALUES (DEFAULT, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        rm_route = database.prepareStatement("DELETE FROM collection WHERE id = ?");
+        rm_route = database.prepareStatement("DELETE FROM collection WHERE id = ? AND owner = ?");
         get_id = database.prepareStatement("SELECT currval('collection_id_seq')");
         clear_user = database.prepareStatement("DELETE FROM collection WHERE owner = ?");
         update_id = database.prepareStatement("UPDATE collection SET name = ?, coordinatex = ?, coordinatey = ?, " +
                 "locationfromx = ?, locationfromy = ?, locationfromz = ?, locationtox = ?, locationtoy = ?, " +
                 "locationtoz = ?, distance = ? WHERE id = ? AND owner = ?");
-        creation_date = database.prepareStatement("SELECT create_date FROM sys.tables WHERE name='collection'");
     }
 
     private void registerCommands(Invoker invoker) {
@@ -185,8 +138,9 @@ public class Server {
         object.add(add_route, user);
     }
 
-    public void remove_route(int id) throws SQLException {
+    public void remove_route(int id, String owner) throws SQLException {
         rm_route.setInt(1, id);
+        rm_route.setString(2, owner);
         rm_route.executeUpdate();
     }
 
@@ -224,8 +178,18 @@ public class Server {
         return s;
     }
 
-    public CollectionManager getManager() {
+    public synchronized CollectionManager getManager() {
         return manager;
     }
-    public Connection getDatabase() {return database;}
+
+    public Connection getDataBase() {
+        return database;
+    }
+
+    public int getNumOfClients() {
+        return numOfClients;
+    }
+    public void addNumOfClients() {
+        this.numOfClients++;
+    }
 }

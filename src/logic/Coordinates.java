@@ -14,10 +14,12 @@ public class Coordinates implements Serializable {
     private final Double X_MAXVALUE = 736d;
     private final double Y_MINVALUE = -119;
 
-    public Coordinates(){}
+    public Coordinates() {
+    }
 
     /**
      * Constructor which throws exception, if we have out of bounds.
+     *
      * @param x - X coordinate.
      * @param y - Y coordinate.
      * @throws OutOfBoundsException - throws exception, if we out of X_MAXVALUE and Y_MINVALUE.
@@ -31,18 +33,25 @@ public class Coordinates implements Serializable {
 
     /**
      * This method returns X coordinate field.
+     *
      * @return - X coordinate.
      */
-    public Double getX() {return  x;}
+    public Double getX() {
+        return x;
+    }
 
     /**
      * This method returns Y coordinate field.
+     *
      * @return - Y coordinate.
      */
-    public double getY() {return  y;}
+    public double getY() {
+        return y;
+    }
 
     /**
      * This method set X coordinate in instance.
+     *
      * @param x - coordinate which we want to set.
      * @throws OutOfBoundsException - throws exception, if we bound of X_MAXVALUE.
      */
@@ -53,6 +62,7 @@ public class Coordinates implements Serializable {
 
     /**
      * This method set Y coordinate in instance.
+     *
      * @param y - coordinate which we want to set.
      * @throws OutOfBoundsException - throws exception, if we bound of Y_MINVALUE.
      */
@@ -63,6 +73,7 @@ public class Coordinates implements Serializable {
 
     /**
      * This method returns values of instance in string.
+     *
      * @return string with values of instance.
      */
     @Override
@@ -70,7 +81,8 @@ public class Coordinates implements Serializable {
         return ("{x: " + x + ", y: " + y + "}");
     }
 
-    public static Coordinates generateObjectUserInput() {
+    public static Coordinates generateObjectUserInput()
+            throws OutOfBoundsException, NullPointerException, NumberFormatException {
         Scanner input = new Scanner(System.in);
 
         System.out.println("Enter coordinate x (Double): ");
@@ -78,11 +90,6 @@ public class Coordinates implements Serializable {
         System.out.println("Enter coordinate у (double): ");
         double y = Double.parseDouble(input.nextLine());
 
-        try {
-            return new Coordinates(x, y);
-        } catch (OutOfBoundsException e) {
-            System.out.println("Out of bound exception!");
-        }
-        return null;
+        return new Coordinates(x, y);
     }
 }

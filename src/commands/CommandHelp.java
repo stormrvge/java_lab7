@@ -27,7 +27,7 @@ public class CommandHelp extends Command {
     }
 
     @Override
-    public void serverCmd(CollectionManager collectionManager, Object args) {
+    public void serverCmd(CollectionManager collectionManager) {
         collectionManager.helpServer();
     }
 }
