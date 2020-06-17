@@ -1,4 +1,6 @@
-package commands;
+package logic;
+
+import commands.Command;
 
 import java.util.HashMap;
 

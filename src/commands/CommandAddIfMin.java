@@ -1,13 +1,16 @@
 package commands;
 
-import client.Client;
+import connection.client.Client;
 import logic.Packet;
-import logic.Route;
+import logic.collectionClasses.Route;
 import logic.User;
-import server.Server;
+import connection.server.Server;
 
 public class CommandAddIfMin extends Command {
-    private boolean require_login = true;
+
+    public CommandAddIfMin() {
+        super(true);
+    }
 
     public boolean getRequireLogin() {
         return require_login;

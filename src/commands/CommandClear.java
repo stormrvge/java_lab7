@@ -1,12 +1,15 @@
 package commands;
 
-import client.Client;
+import connection.client.Client;
 import logic.Packet;
 import logic.User;
-import server.Server;
+import connection.server.Server;
 
 public class CommandClear extends Command {
-    private boolean require_login = true;
+
+    public CommandClear() {
+        super(true);
+    }
 
     public boolean getRequireLogin() {
         return require_login;

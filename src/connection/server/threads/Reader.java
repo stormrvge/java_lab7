@@ -1,6 +1,7 @@
-package server;
+package connection.server.threads;
 
 import commands.Command;
+import connection.server.Server;
 import logic.Packet;
 import logic.User;
 
@@ -16,7 +17,7 @@ public class Reader extends Thread {
     private final Socket clientSocket;
     private ObjectOutputStream out;
 
-    Reader(Server server, Socket clientSocket) {
+    public Reader(Server server, Socket clientSocket) {
         this.clientSocket = clientSocket;
         this.server = server;
     }
@@ -24,7 +25,7 @@ public class Reader extends Thread {
     @Override
     public void run() {
         server.addNumOfClients();
-        System.out.println("Server accepted client number: " + server.getNumOfClients());
+        System.out.println("Server accepted connection.client number: " + server.getNumOfClients());
 
         if (clientSocket != null) {
             try {

@@ -1,6 +1,7 @@
-package logic;
+package logic.collectionClasses;
 
-import commands.OutOfBoundsException;
+import commands.exceptions.OutOfBoundsException;
+import logic.User;
 
 import java.io.Serializable;
 import java.sql.PreparedStatement;

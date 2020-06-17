@@ -1,15 +1,18 @@
 package commands;
 
-import client.Client;
+import connection.client.Client;
 import logic.Packet;
 import logic.User;
-import server.Server;
+import connection.server.Server;
 
 /**
  * This class of print_unique_distance command. This class just call method from Control Unit.
  */
 public class CommandPrintUniqueDistance extends Command {
-    private final boolean require_login = true;
+
+    public CommandPrintUniqueDistance() {
+        super(true);
+    }
 
     public boolean getRequireLogin() {
         return require_login;

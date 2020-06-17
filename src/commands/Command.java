@@ -1,27 +1,22 @@
 package commands;
 
-import client.Client;
+import connection.client.Client;
 import logic.CollectionManager;
 import logic.Packet;
 import logic.User;
-import server.Server;
+import connection.server.Server;
 
 import java.io.Serializable;
 
 public abstract class Command implements Serializable {
-    public boolean getRequireLogin() {
-        return false;
+    final boolean require_login;
+
+    protected Command(boolean require_login) {
+        this.require_login = require_login;
     }
 
-    public String execOnServer(Server server, Object args, User user) {
-        return null;
-    }
-
-    public Packet execOnClient(Client client, String ... args) {
-        return new Packet(this, null, null);
-    }
-
-    public void serverCmd(CollectionManager collectionManager) {
-
-    }
+    abstract public boolean getRequireLogin();
+    abstract public String execOnServer(Server server, Object args, User user);
+    abstract public Packet execOnClient(Client client, String ... args);
+    public void serverCmd(CollectionManager collectionManager) {}
 }

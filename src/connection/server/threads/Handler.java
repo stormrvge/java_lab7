@@ -1,5 +1,6 @@
-package server;
+package connection.server.threads;
 
+import connection.server.Server;
 import logic.Packet;
 
 import java.util.concurrent.Callable;

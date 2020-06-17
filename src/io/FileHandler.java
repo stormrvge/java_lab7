@@ -1,6 +1,6 @@
 package io;
 
-import server.Server;
+import connection.server.Server;
 
 import java.io.*;
 
@@ -13,7 +13,6 @@ import java.io.*;
 public class FileHandler {
     public static final byte READ = 0, WRITE = 1, READ_WRITE = 2;
 
-    private final String file_name;
     private final byte mod;
     private BufferedReader file_reader;
     private FileWriter file_writer;
@@ -24,7 +23,6 @@ public class FileHandler {
      * @throws IOException If I/O errors occurs.
      */
     public FileHandler(String file_name, byte mod) throws IOException {
-        this.file_name = file_name;
         this.mod = mod;
         try {
             this.file_reader = new BufferedReader(new FileReader(file_name));
@@ -56,32 +54,6 @@ public class FileHandler {
         } else {
             return null;
         }
-    }
-
-    /**
-     * Write string to file.
-     * It appends newline character to file after string.
-     * @param data String to be written in file.
-     * @throws IOException  If I/O errors occurs.
-     */
-    public void writeline(String data) throws IOException {
-        if(mod == WRITE || mod == READ_WRITE) {
-            file_writer.write(data + "\n");
-        }
-    }
-
-    public String name() {
-        return file_name;
-    }
-
-    /**
-     * Set file empty
-     * @throws IOException  If I/O errors occurs.
-     */
-    public void flush_file() throws IOException {
-        PrintWriter writer = new PrintWriter(file_name);
-        writer.print("");
-        writer.close();
     }
 
     /**

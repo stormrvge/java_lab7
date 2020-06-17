@@ -1,8 +1,9 @@
 package logic;
 
-import commands.OutOfBoundsException;
-import commands.PermissionDeniedException;
-import server.Server;
+import commands.exceptions.OutOfBoundsException;
+import commands.exceptions.PermissionDeniedException;
+import logic.collectionClasses.Route;
+import connection.server.Server;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
@@ -16,8 +17,8 @@ import java.util.stream.Collectors;
  * This class realizing methods for commands.
  */
 public class CollectionManager implements Serializable {
-    private ArrayList<Route> route;
-    private java.time.ZonedDateTime date;
+    private final ArrayList<Route> route;
+    private final java.time.ZonedDateTime date;
     private final ReentrantLock lock;
 
     public CollectionManager() {
@@ -39,13 +40,15 @@ public class CollectionManager implements Serializable {
      * Method "info" which displays short instruction of every command program.
      */
     public String helpClient() {
-        return ("info: вывести в стандартный поток вывода информацию о коллекции (тип, дата инициализации, количество элементов и т.д.)" +
+        return ("register: зарегистрироваться в приложении (register username pass), пароль шифруется." +
+                "\nlogin: залогиниться в приложении (login username pass), пароль передается в шифрованном виде" +
+                "\ninfo: вывести в стандартный поток вывода информацию о коллекции (тип, дата инициализации, количество элементов и т.д.)" +
                 "\nshow: вывести в стандартный поток вывода все элементы коллекции в строковом представлении" +
                 "\nadd {element}: добавить новый элемент в коллекцию" +
                 "\nupdate_id {element}: обновить значение элемента коллекции, id которого равен заданному" +
                 "\nremove_by_id id: удалить элемент из коллекции по его id" +
                 "\nclear: очистить коллекцию" +
-                "\nexecute_script file_name: считать и исполнить скрипт из указанного файла. В скрипте содержатся команды в таком же виде, в котором их вводит пользователь в интерактивном режиме. + " +
+                "\nexecute_script file_name: считать и исполнить скрипт из указанного файла. В скрипте содержатся команды в таком же виде, в котором их вводит пользователь в интерактивном режиме." +
                 "\nexit: завершить программу (без сохранения в файл)" +
                 "\nremove_at index: удалить элемент, находящийся в заданной позиции коллекции (index)" +
                 "\nadd_if_max {element}: добавить новый элемент в коллекцию, если его значение превышает значение наибольшего элемента этой коллекции" +
@@ -74,9 +77,7 @@ public class CollectionManager implements Serializable {
             String[] className = arrayListType.replace("<", " ").
                     replace(">", " ").split("[ .]");
             lock.unlock();
-            return ("Type: "  + className[4] +   // className[5]
-                    ", initializing date: " + date +
-                    ", collection size: " + route.size());
+            return ("Type: "  + className[5] + ", initializing date: " + date + ", collection size: " + route.size());
         } catch (NoSuchFieldException e) {
             lock.unlock();
             return ("Problem with general class. Cant find type of class!");
@@ -91,6 +92,7 @@ public class CollectionManager implements Serializable {
         if (route.isEmpty()) return ("Collection is empty.");
         else {
             String str = route.stream()
+                    .sorted(Comparator.comparing(Route::getId))
                     .map(Route::toString)
                     .collect(Collectors.joining(("\n")));
             lock.unlock();
@@ -303,11 +305,11 @@ public class CollectionManager implements Serializable {
                 .sorted(Comparator.comparing(Route::getDistance))
                 .collect(Collectors.toCollection(ArrayList::new));
 
-        String str = "Sorted by distance: [";
+        StringBuilder str = new StringBuilder("Sorted by distance: [");
         for (int i = 0; i < sortedRoute.size(); i++) {
             Route value = sortedRoute.get(i);
-            str += value.getDistance();
-            if (i + 1 < sortedRoute.size()) str += (", ");
+            str.append(value.getDistance());
+            if (i + 1 < sortedRoute.size()) str.append(", ");
         }
 
         lock.unlock();
@@ -347,9 +349,5 @@ public class CollectionManager implements Serializable {
                 throw new OutOfBoundsException();
             }
         }
-    }
-
-    private void setInitDate(java.time.ZonedDateTime date) {
-        this.date = date;
     }
 }

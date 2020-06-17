@@ -1,14 +1,17 @@
 package commands;
 
-import client.Client;
+import connection.client.Client;
 import logic.Packet;
-import logic.Route;
+import logic.collectionClasses.Route;
 import logic.User;
-import server.Server;
+import connection.server.Server;
 
 
 public class CommandAdd extends Command {
-    private boolean require_login = true;
+
+    public CommandAdd() {
+        super(true);
+    }
 
     public boolean getRequireLogin() {
         return require_login;

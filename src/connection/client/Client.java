@@ -1,7 +1,8 @@
-package client;
+package connection.client;
 
 import commands.*;
 import io.Input;
+import logic.Invoker;
 import logic.Packet;
 import logic.User;
 
@@ -38,7 +39,8 @@ public class Client {
                 addr = new InetSocketAddress(hostname, port);
                 channel = SocketChannel.open(addr);
                 channel.configureBlocking(false);
-                System.out.println("Connected to server!");
+                System.out.println("Connected to connection.server!");
+                System.out.println("Type \"help\" for list of available commands.");
 
                 registerCommands(invoker);
 
@@ -51,7 +53,7 @@ public class Client {
                     }
                 }
             } catch (SocketException e) {
-                System.out.println("Cant connect to the server. Server is down.");
+                System.out.println("Cant connect to the connection.server. Server is down.");
                 reconnect();
             }
         } catch (NullPointerException | IOException | InterruptedException e) {
@@ -62,22 +64,20 @@ public class Client {
     private void handleRequest(String userInput) throws IOException, InterruptedException {
         Command command = invoker.createCommand(userInput);
 
-        if (invoker.getCommandName().equals("exit")) {
-            command.execOnClient(this);
-        }
-        else if (command != null) {
+        if (command != null) {
             String[] args = invoker.getArgs();
 
-            if (userInput.contains("execute_script")) {
-                CommandExecuteScript cmd = (CommandExecuteScript) command;
-                ArrayList<Packet> packets = cmd.execute(userInput.split(" "));
-                if (packets != null) {
+            if (invoker.getCommandName().equals("execute_script")) {
+                ArrayList<Packet> packets = new CommandExecuteScript(this, invoker).execute(args);
+                if (packets != null && !packets.isEmpty()) {
                     for (Packet packet : packets) {
                         sendPacket(packet);
-                        Thread.sleep(70);
+                        Thread.sleep(100);
+                        System.out.println();
                     }
                 }
             }
+
             else {
                 Packet packet = command.execOnClient(this, args);
                 sendPacket(packet);
@@ -92,7 +92,6 @@ public class Client {
 
             try {
                 channel.write(wrap);
-                System.out.println();
                 Thread.sleep(150);
             } catch (IOException e) {
                 reconnect();
@@ -102,7 +101,7 @@ public class Client {
         }
     }
 
-    private void readMessage() throws IOException, InterruptedException {
+    private void readMessage() throws IOException {
         ByteBuffer msg = ByteBuffer.allocate(4096);
         msg.clear();
 
@@ -110,7 +109,7 @@ public class Client {
             channel.read(msg);
 
             if (msg.position() == 0) {
-                System.out.println("Now server is locked. Wait please...");
+                System.out.println("Now connection.server is locked. Wait please...");
                 try {
                     Thread.sleep(1000);
                     readMessage();
@@ -158,7 +157,7 @@ public class Client {
                     run();
                     break;
                 } catch (Exception e) {
-                    System.err.println("No answer from server, trying: " + (i + 1));
+                    System.err.println("No answer from connection.server, trying: " + (i + 1));
                 }
                 Thread.sleep(1000);
             }

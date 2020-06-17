@@ -1,6 +1,6 @@
-package logic;
+package logic.collectionClasses;
 
-import commands.OutOfBoundsException;
+import commands.exceptions.OutOfBoundsException;
 
 import java.io.Serializable;
 import java.util.Scanner;

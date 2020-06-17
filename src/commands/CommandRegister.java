@@ -1,14 +1,17 @@
 package commands;
 
-import client.Client;
+import connection.client.Client;
 import logic.Packet;
 import logic.User;
-import server.Server;
+import connection.server.Server;
 
 import java.sql.SQLException;
 
 public class CommandRegister extends Command {
-    private final boolean require_login = false;
+
+    public CommandRegister() {
+        super(false);
+    }
 
     public boolean getRequireLogin() {
         return require_login;

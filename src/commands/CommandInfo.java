@@ -1,15 +1,18 @@
 package commands;
 
-import client.Client;
+import connection.client.Client;
 import logic.Packet;
 import logic.User;
-import server.Server;
+import connection.server.Server;
 
 /**
  * This class of info command. This class just call method from Control Unit.
  */
 public class CommandInfo extends Command {
-    private final boolean require_login = true;
+
+    public CommandInfo() {
+        super(true);
+    }
 
     public boolean getRequireLogin() {
         return require_login;

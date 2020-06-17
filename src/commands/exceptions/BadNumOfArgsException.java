@@ -1,4 +1,4 @@
-package commands;
+package commands.exceptions;
 
 /**
  * Class for exception, if bad number of arguments in console.

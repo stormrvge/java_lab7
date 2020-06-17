@@ -1,18 +1,18 @@
 package commands;
 
-import client.Client;
-import logic.CollectionManager;
+import connection.client.Client;
 import logic.Packet;
 import logic.User;
-import server.Server;
-
-import java.sql.SQLException;
+import connection.server.Server;
 
 /**
  * This class of remove_by_id command. This class just call method from Control Unit.
  */
 public class CommandRemoveById extends Command {
-    private boolean require_login = true;
+
+    public CommandRemoveById() {
+        super(true);
+    }
 
     public boolean getRequireLogin() {
         return require_login;

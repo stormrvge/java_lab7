@@ -1,7 +1,7 @@
-package server;
+package connection.server;
 
 import logic.CollectionManager;
-import logic.Route;
+import logic.collectionClasses.Route;
 import logic.User;
 
 import java.sql.Connection;

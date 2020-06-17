@@ -1,20 +1,26 @@
-package server;
+package connection.server;
 
 import commands.*;
+import connection.server.threads.Reader;
 import logic.CollectionManager;
+import logic.Invoker;
 
 import java.io.*;
 import java.net.*;
 import java.sql.*;
+import java.util.Properties;
 
 public class Server {
     private final int port;
     private static Socket clientSocket;
     private static ServerSocket server;
     private SQLStatements sqlStatements;
-    private final String user;
-    private final String password;
+    private String url;
+    private String user;
+    private String password;
 
+    private final File connectionProperties;
+    private final Properties properties;
     private Connection database;
     private static CollectionManager manager;
     private int numOfClients;
@@ -24,6 +30,8 @@ public class Server {
         this.port = port;
         this.user = user;
         this.password = password;
+        properties = new Properties();
+        connectionProperties = new File("connection.properties");
     }
 
     public void process() {
@@ -32,7 +40,13 @@ public class Server {
             server.setSoTimeout(1000);
             System.out.println("Server started on: " + server.getInetAddress());
 
-            database = DriverManager.getConnection("jdbc:postgresql://pg:5432/studs", user, password);
+
+            properties.load(new FileInputStream(connectionProperties));
+            url = properties.getProperty("url");
+            user = properties.getProperty("login");
+            password = properties.getProperty("password");
+
+            database = DriverManager.getConnection(url, user, password);
 
             Invoker invoker = new Invoker();
             manager = new CollectionManager();
@@ -47,16 +61,16 @@ public class Server {
                     try {
                         clientSocket = server.accept();
                         if (clientSocket != null) {
-                            Reader reader = new Reader(this, clientSocket);
+                            connection.server.threads.Reader reader = new Reader(this, clientSocket);
                             reader.start();
                         }
-                    } catch (SocketTimeoutException e) {
-                        System.out.print("");
-                    }
+                    } catch (SocketTimeoutException ignored) {}
                 }
                 else if (inputCmd.ready()) {
                     Command command = invoker.createCommand(inputCmd.readLine().trim());
-                    command.serverCmd(manager);
+                    try {
+                        command.serverCmd(manager);
+                    }  catch (NullPointerException ignored) {}
                 }
             }
         } catch (IOException | SQLException e) {
@@ -66,7 +80,7 @@ public class Server {
         }
     }
 
-    static void closeConnection() {
+    public static void closeConnection() {
         try {
             clientSocket.close();
         } catch (IOException e) {

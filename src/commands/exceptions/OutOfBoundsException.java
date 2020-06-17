@@ -1,4 +1,4 @@
-package commands;
+package commands.exceptions;
 
 /**
  * Exception class which uses for coordinates and locations.
